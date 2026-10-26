@@ -1,0 +1,33 @@
+/*
+  Témata = jen barvy. Každá barva v appce je proměnná (--neco).
+  Nové téma = zkopíruj blok [data-theme="..."] a změň hodnoty.
+  Přepnutí: document.documentElement.dataset.theme = 'light'
+*/
+
+:root,
+[data-theme="dark"] {
+  --bg: #0b0b0d;            /* pozadí celé appky */
+  --surface: #151518;       /* karty, panely */
+  --surface-2: #1e1e22;     /* vstupy, aktivní záložka */
+  --border: #2a2a30;        /* jemné linky */
+  --text: #ededf0;          /* hlavní text */
+  --text-muted: #8a8a93;    /* vedlejší text */
+  --accent: #e8c547;        /* zvýraznění (žlutá jako narcis) */
+  --accent-text: #0b0b0d;   /* text na zvýrazněném pozadí */
+  --danger: #e5484d;
+  color-scheme: dark;
+}
+
+/* Ukázkové světlé téma – zatím ho nic nezapíná */
+[data-theme="light"] {
+  --bg: #f6f6f7;
+  --surface: #ffffff;
+  --surface-2: #ececef;
+  --border: #dcdce0;
+  --text: #111114;
+  --text-muted: #6b6b73;
+  --accent: #b8960f;
+  --accent-text: #ffffff;
+  --danger: #d1242f;
+  color-scheme: light;
+}
