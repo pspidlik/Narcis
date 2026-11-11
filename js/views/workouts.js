@@ -3,11 +3,11 @@
 // Plány jsou v table.templates, který plán byl v jaký den v table.workouts.
 
 import { saveTable } from '../db.js';
-import { escapeHtml, today, dayLabel, shortDate, formatKg, plural, fold } from '../utils.js';
+import { escapeHtml, today, dayLabel, shortDate, formatKg, plural, fold, daysAgo, daysBetween } from '../utils.js';
 import { parseEntry, describeQuick } from '../quick-entry.js';
 import {
   groupWorkouts, rowsFromQuick, lastTime, exerciseNames, setsSummary, formatSet, setsText,
-  toQuickText, workoutPlan,
+  toQuickText, workoutPlan, exerciseInfo, shouldAddWeight, partStatus, achievedGoals,
 } from '../gym-data.js';
 
 const HELP_HTML = `
@@ -84,11 +84,18 @@ function createPage($root, table, targetDate, redraw) {
 
   // Zapíše série z rychlého zápisu do tabulky – jediná cesta, jak se v trénincích zapisuje
   function log(parsed) {
+    const goalsBefore = achievedGoals(table, groupWorkouts(table));
     const rows = rowsFromQuick(table, parsed, targetDate);
     table.rows.unshift(...rows);
     persist();
     redraw();
-    toast(`✓ ${describeQuick(parsed)}`, () => {
+
+    // Čerstvě splněný cíl = byl splněný po zápisu, ale ne před ním
+    const goalsAfter = achievedGoals(table, groupWorkouts(table));
+    const fresh = table.goals.filter((g) => goalsAfter.has(g.id) && !goalsBefore.has(g.id));
+    const goalText = fresh.map((g) => ` 🎯 Cíl splněn: ${g.exercise} ${g.weight} kg!`).join('');
+
+    toast(`✓ ${describeQuick(parsed)}${goalText}`, () => {
       const ids = new Set(rows.map((r) => r.id));
       table.rows = table.rows.filter((r) => !ids.has(r.id));
       persist();
@@ -131,8 +138,9 @@ function mountQuickEntry($root, table, targetDate, page) {
     const last = parsed.exercise && lastTime(groupWorkouts(table), parsed.exercise, targetDate);
     if (last) {
       lastText = toQuickText(last.exercise);
+      const tip = shouldAddWeight(table, last.exercise) ? ' <b>→ přidej váhu 💡</b>' : '';
       $hint.innerHTML = `
-        <span>Minule <b>${shortDate(last.date)}</b>: ${escapeHtml(setsSummary(last.exercise, true))}</span>
+        <span>Minule <b>${shortDate(last.date)}</b>: ${escapeHtml(setsSummary(last.exercise, true))}${tip}</span>
         <button type="button" class="btn btn-ghost small" data-action="use-last">↺ Stejně</button>`;
       $hint.hidden = false;
     }
@@ -259,13 +267,33 @@ function cardHtml(table, w, key) {
   </a>`;
 }
 
+// "Co dnes? Záda (před 6 dny) · Ramena (před 4 dny)" – odkaz na Přehled
+function todayHintHtml(table, key) {
+  const status = partStatus(table, groupWorkouts(table));
+  if (!status.some((s) => s.last)) return ''; // cviky ještě nemají partie
+  // Jen partie, které už máš zapsané – "ještě nikdy" bývá partie, kterou nedáváš
+  const top = status
+    .filter((s) => !s.paused && s.last)
+    .slice(0, 3)
+    .map((s) => `<b>${escapeHtml(s.part)}</b> ${daysAgo(s.days)}`)
+    .join(' · ');
+  return `<a class="today-hint" href="#/${key}/prehled"><span class="muted">Co dnes?</span> ${top} ›</a>`;
+}
+
+// Kdy jsi trénink podle plánu dělal naposledy
+function planLastDate(table, templateId) {
+  const dates = Object.keys(table.workouts).filter((d) => table.workouts[d].templateId === templateId && d <= today());
+  return dates.sort().at(-1) || null;
+}
+
 export function renderWorkoutList($el, table, key) {
   $el.innerHTML = `
     <section class="plan-start">
       <div class="section-head">
         <span class="quick-label">Začít trénink</span>
-        <a class="btn btn-ghost small" href="#/${key}/plany">⚙ Plány</a>
+        <a class="btn btn-ghost small" href="#/${key}/plany">⚙ Plány a cviky</a>
       </div>
+      ${todayHintHtml(table, key)}
       <div class="plan-buttons" id="plan-buttons"></div>
     </section>
     ${quickHtml('Nebo zapiš rovnou do dneška')}
@@ -278,8 +306,10 @@ export function renderWorkoutList($el, table, key) {
     ? table.templates
         .map((t) => {
           const n = t.exercises.length;
+          const last = planLastDate(table, t.id);
+          const when = last ? ` · ${daysAgo(daysBetween(last, today()))}` : '';
           return `<button class="plan-btn" data-action="start" data-id="${t.id}">
-            <b>${escapeHtml(t.name)}</b><span>${n} ${plural(n, 'cvik', 'cviky', 'cviků')}</span>
+            <b>${escapeHtml(t.name)}</b><span>${n} ${plural(n, 'cvik', 'cviky', 'cviků')}${when}</span>
           </button>`;
         })
         .join('')
@@ -318,8 +348,8 @@ export function renderWorkoutList($el, table, key) {
 
 // ---------- Detail tréninku ----------
 
-// Cvik v detailu: série, srovnání s minule a pole pro zápis jen čísel
-function exerciseHtml(ex, prev) {
+// Cvik v detailu: partie, série, srovnání s minule, tip "přidej váhu" a pole pro zápis jen čísel
+function exerciseHtml(table, key, ex, prev) {
   let n = 0;
   const rows = ex.sets
     .map((s) => {
@@ -332,7 +362,7 @@ function exerciseHtml(ex, prev) {
   const summary = done
     ? `${formatKg(ex.volume)} kg${ex.best ? ` · nejlepší ${escapeHtml(formatSet(ex.best))}` : ''}`
     : 'zatím nezapsáno';
-  const table = done
+  const sets = done
     ? `<table class="sets">
         <thead><tr><th>Série</th><th>kg</th><th>Opak.</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -344,9 +374,22 @@ function exerciseHtml(ex, prev) {
     : '';
   const name = escapeHtml(ex.name);
 
+  // Partie u cviku, nebo odkaz, kde ji nastavit
+  const info = exerciseInfo(table, ex.name);
+  const part = info.part
+    ? `<span class="part-chip">${escapeHtml(info.part)}</span>`
+    : `<a class="part-chip empty" href="#/${key}/plany">+ partie</a>`;
+
+  // Tip "přidej váhu": dnes (když je hotovo), jinak podle minula
+  const { max } = info;
+  let tip = '';
+  if (done && shouldAddWeight(table, ex)) tip = `Všechny série na ${max} – příště přidej váhu`;
+  else if (!done && prev && shouldAddWeight(table, prev.exercise)) tip = `Minule všechny série na ${max} – dnes přidej váhu`;
+  const tipHtml = tip ? `<p class="ex-tip">💡 ${tip}</p>` : '';
+
   return `<section class="ex-card${done ? '' : ' pending'}">
-    <div class="ex-head"><h3>${name}</h3><span class="muted">${summary}</span></div>
-    ${table}${notes}${prevHtml}
+    <div class="ex-head"><h3>${name} ${part}</h3><span class="muted">${summary}</span></div>
+    ${sets}${notes}${prevHtml}${tipHtml}
     <form class="ex-quick" data-exercise="${name}" autocomplete="off">
       <input class="quick-input" name="sets" placeholder="${prev ? escapeHtml(setsText(prev.exercise)) : '80 8/8/6'}"
              enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Série – ${name}">
@@ -409,7 +452,7 @@ export function renderWorkoutDetail($el, table, key, date) {
 
     const items = exercisesToShow(workouts, template);
     $list.innerHTML = items.length
-      ? items.map((ex) => exerciseHtml(ex, lastTime(workouts, ex.name, date))).join('')
+      ? items.map((ex) => exerciseHtml(table, key, ex, lastTime(workouts, ex.name, date))).join('')
       : template
         ? `<p class="empty-state">Plán „${escapeHtml(template.name)}" zatím nemá cviky.<br><a href="#/${key}/plany">Přidej je v ⚙ Plány</a></p>`
         : `<p class="empty-state">Vyber plán (Plán ▾), nebo zapiš cvik dole.</p>`;

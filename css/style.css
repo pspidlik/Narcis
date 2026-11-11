@@ -202,6 +202,89 @@ button, input, textarea { font: inherit; color: inherit; }
 .plan-btn span { font-size: 12px; color: var(--text-muted); }
 .plan-btn:active { border-color: var(--accent); }
 
+/* "Co dnes? Záda před 6 dny · …" nad plány */
+.today-hint {
+  display: block;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+}
+.today-hint b { color: var(--accent); font-weight: 600; }
+
+/* Partie u cviku */
+.part-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  vertical-align: middle;
+  text-decoration: none;
+}
+.part-chip.empty { border-style: dashed; }
+.ex-tip { margin-top: 8px; font-size: 14px; color: var(--accent); }
+
+/* ---------- Přehled ---------- */
+.block {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.block h3 { font-size: 17px; margin-bottom: 4px; }
+.block h3 .muted { font-size: 13px; font-weight: 500; }
+.block-sub { font-size: 13px; margin-bottom: 10px; }
+.block-sub a { color: var(--accent); }
+.up { color: var(--accent); }
+.down { color: var(--danger); }
+
+.part-list { list-style: none; }
+.part-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--border); }
+.part-name { font-weight: 600; min-width: 80px; }
+.part-days { flex: 1; color: var(--text-muted); font-size: 14px; }
+.part-row.paused .part-name, .part-row.paused .part-days { opacity: 0.6; }
+
+/* Vodorovné sloupce (týden po partiích, postup k cíli) */
+.bars { list-style: none; }
+.bar-row { display: grid; grid-template-columns: 80px 1fr; gap: 2px 10px; align-items: center; padding: 5px 0; }
+.bar-label { font-size: 14px; font-weight: 500; }
+.bar-value { grid-column: 2; font-size: 12px; color: var(--text-muted); }
+.bar { display: block; height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+
+.goals { list-style: none; margin-bottom: 12px; }
+.goal { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--border); font-size: 14px; }
+.goal-head { display: flex; justify-content: space-between; align-items: center; }
+.goal-head .icon-btn { height: 28px; }
+.goal-form { display: flex; gap: 6px; }
+.goal-form .quick-input { height: 40px; }
+.goal-form .num { flex: 0 0 64px; }
+
+/* ---------- ⚙ Cviky a partie ---------- */
+.parts-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; font-size: 14px; }
+.ex-info-list { list-style: none; margin-bottom: 24px; }
+.ex-info-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+.ex-info-name { font-weight: 500; }
+.ex-info-controls { display: flex; align-items: center; gap: 6px; }
+.ex-info-part, .ex-info-num {
+  height: 36px;
+  padding: 0 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 16px; /* méně = iPhone při psaní zoomuje */
+}
+.ex-info-num { width: 48px; text-align: center; }
+
 /* ---------- Oznámení dole ("✓ Zapsáno … Vrátit") ---------- */
 .toast {
   position: fixed;

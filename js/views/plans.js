@@ -1,9 +1,11 @@
-// ⚙ Plány tréninků: názvy tréninků a cviky, které v nich obvykle cvičíš.
-// Uložené v gym tabulce (table.templates), takže jsou pohromadě s ostatními daty.
+// ⚙ Plány a cviky:
+//   - plány tréninků: názvy tréninků a cviky, které v nich obvykle cvičíš
+//   - cviky: partie a rozsah opakování (zadáš jednou, appka je pak používá všude)
+// Uložené v gym tabulce (table.templates, table.exercises, table.parts).
 
 import { saveTableSoon } from '../db.js';
 import { escapeHtml, newId, fold } from '../utils.js';
-import { groupWorkouts, exerciseNames } from '../gym-data.js';
+import { groupWorkouts, exerciseNames, exerciseInfo, setExerciseInfo } from '../gym-data.js';
 
 function exercisesHtml(t) {
   if (!t.exercises.length) return '<li class="muted plan-empty">Zatím žádné cviky</li>';
@@ -35,6 +37,27 @@ function planHtml(t) {
   </section>`;
 }
 
+// Řádek cviku: název, partie, rozsah opakování od–do
+function exerciseInfoHtml(table, name) {
+  const info = exerciseInfo(table, name);
+  const n = escapeHtml(name);
+  const parts = ['', ...table.parts]
+    .map((p) => `<option value="${escapeHtml(p)}"${p === (info.part || '') ? ' selected' : ''}>${p ? escapeHtml(p) : '– partie –'}</option>`)
+    .join('');
+  return `<li class="ex-info-row">
+    <span class="ex-info-name">${n}</span>
+    <div class="ex-info-controls">
+      <select class="ex-info-part" data-name="${n}" data-info="part" aria-label="Partie – ${n}">${parts}</select>
+      <input class="ex-info-num" data-name="${n}" data-info="min" inputmode="numeric" placeholder="od"
+             value="${info.min ?? ''}" aria-label="Opakování od – ${n}">
+      <span class="muted">–</span>
+      <input class="ex-info-num" data-name="${n}" data-info="max" inputmode="numeric" placeholder="do"
+             value="${info.max ?? ''}" aria-label="Opakování do – ${n}">
+      <span class="muted">op.</span>
+    </div>
+  </li>`;
+}
+
 export function renderPlans($el, table, key) {
   $el.innerHTML = `
     <div class="detail-top"><a class="back" href="#/${key}">‹ Tréninky</a></div>
@@ -43,16 +66,50 @@ export function renderPlans($el, table, key) {
       Když pak trénink začneš, budou připravené k zapsání.</p>
     <div id="plans"></div>
     <button class="btn btn-ghost wide" type="button" data-action="plan-add">+ Nový trénink</button>
+
+    <h2 class="detail-title" id="cviky">Cviky a partie</h2>
+    <p class="muted plans-intro">Partii zadáš u cviku jednou – appka podle ní počítá „Co dnes?" a objem
+      po partiích. Rozsah opakování (třeba 8–12): když dáš ve všech sériích horní hranici,
+      appka ti řekne, ať přidáš váhu.</p>
+    <div class="parts-line">
+      <span id="parts-list"></span>
+      <button class="btn btn-ghost small" type="button" data-action="parts-edit">Upravit partie</button>
+    </div>
+    <ul class="ex-info-list" id="ex-info"></ul>
     <datalist id="plan-exercises"></datalist>`;
 
   const $plans = $el.querySelector('#plans');
   const $names = $el.querySelector('#plan-exercises');
+  const $info = $el.querySelector('#ex-info');
+  const $partsList = $el.querySelector('#parts-list');
   const find = (id) => table.templates.find((t) => t.id === id);
   const save = () => saveTableSoon(table);
 
   const refreshNames = () => {
-    $names.innerHTML = exerciseNames(table, groupWorkouts(table)).map((n) => `<option value="${escapeHtml(n)}">`).join('');
+    const names = exerciseNames(table, groupWorkouts(table));
+    $names.innerHTML = names.map((n) => `<option value="${escapeHtml(n)}">`).join('');
+    // Seznam cviků s partiemi – abecedně
+    const sorted = [...names].sort((a, b) => a.localeCompare(b, 'cs'));
+    $info.innerHTML = sorted.length
+      ? sorted.map((n) => exerciseInfoHtml(table, n)).join('')
+      : '<li class="muted plan-empty">Cviky se tu objeví, jakmile je přidáš do plánu nebo zapíšeš.</li>';
+    $partsList.textContent = `Partie: ${table.parts.join(' · ')}`;
   };
+
+  // Partie a rozsah opakování u cviku
+  $info.addEventListener('change', (ev) => {
+    const t = ev.target;
+    if (t.dataset.info !== 'part') return;
+    setExerciseInfo(table, t.dataset.name, { part: t.value || undefined });
+    save();
+  });
+  $info.addEventListener('input', (ev) => {
+    const t = ev.target;
+    if (t.dataset.info !== 'min' && t.dataset.info !== 'max') return;
+    const n = parseInt(t.value, 10);
+    setExerciseInfo(table, t.dataset.name, { [t.dataset.info]: n > 0 ? n : undefined });
+    save();
+  });
 
   const draw = () => {
     $plans.innerHTML = table.templates.length
@@ -114,6 +171,16 @@ export function renderPlans($el, table, key) {
       if (!confirm(`Smazat trénink „${t.name}"? Zapsané série zůstanou.`)) return;
       table.templates = table.templates.filter((x) => x !== t);
       draw();
+      save();
+    }
+
+    if (action === 'parts-edit') {
+      const answer = prompt('Partie oddělené čárkou:', table.parts.join(', '));
+      if (answer === null) return;
+      const parts = answer.split(',').map((s) => s.trim()).filter(Boolean);
+      if (!parts.length) return;
+      table.parts = [...new Set(parts)];
+      refreshNames();
       save();
     }
 
