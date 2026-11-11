@@ -1,20 +1,29 @@
 // Hlavní logika: podle adresy za # vykreslí správnou kategorii a podzáložku.
 // Příklad adresy: index.html#/gym/pumpa
+// Další části adresy si zpracuje sama podzáložka (#/gym/tabulka/2026-10-26).
 
 import { categories } from './routes.js';
-import { addEntry, listEntries, deleteEntry, requestPersistence } from './db.js';
+import { addEntry, listEntries, deleteEntry, flushSaves, requestPersistence } from './db.js';
+import { escapeHtml } from './utils.js';
+import { renderGymLog } from './views/gym-log.js';
+
+// Podzáložky s vlastním obsahem. Ostatní zatím ukazují zástupnou stránku.
+const views = {
+  'gym/tabulka': renderGymLog,
+};
 
 const $tabbar = document.getElementById('tabbar');
 const $subnav = document.getElementById('subnav');
 const $title = document.getElementById('page-title');
 const $view = document.getElementById('view');
 
-// "#/gym/pumpa" -> { category, section }; neznámá adresa -> první záložka
+// "#/gym/tabulka/2026-10-26" -> { category, section, rest: ['2026-10-26'] }
+// Neznámá adresa -> první záložka
 function parseHash() {
-  const [catId, secId] = location.hash.replace(/^#\/?/, '').split('/');
+  const [catId, secId, ...rest] = location.hash.replace(/^#\/?/, '').split('/');
   const category = categories.find((c) => c.id === catId) || categories[0];
   const section = category.sections.find((s) => s.id === secId) || category.sections[0];
-  return { category, section };
+  return { category, section, rest: rest.map(decodeURIComponent) };
 }
 
 function renderNav(category, section) {
@@ -30,10 +39,13 @@ function renderNav(category, section) {
   document.title = `${section.label} · ${category.label} · Narcis`;
 }
 
-// Zatím stejná zástupná stránka pro každou podzáložku.
-// Malý formulář jen ověřuje, že ukládání do IndexedDB funguje.
-async function renderView(category, section) {
+async function renderView(category, section, rest) {
   const key = `${category.id}/${section.id}`;
+  $view.className = 'view';
+  $view.scrollTop = 0;
+  if (views[key]) return views[key]($view, key, rest);
+
+  // Zástupná stránka. Malý formulář jen ověřuje, že ukládání do IndexedDB funguje.
   $view.innerHTML = `
     <div class="card">
       <h2>${section.label}</h2>
@@ -76,15 +88,11 @@ async function renderView(category, section) {
   refresh();
 }
 
-// Text od uživatele nikdy nevkládáme do HTML "syrový"
-function escapeHtml(str) {
-  return str.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
-}
-
 function render() {
-  const { category, section } = parseHash();
+  const { category, section, rest } = parseHash();
+  flushSaves(); // rozepsané změny ulož dřív, než se načte další stránka
   renderNav(category, section);
-  renderView(category, section);
+  renderView(category, section, rest);
 }
 
 window.addEventListener('hashchange', render);

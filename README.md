@@ -15,7 +15,16 @@ narcis/
 ├── js/
 │   ├── routes.js          seznam kategorií a podzáložek
 │   ├── app.js             přepínání stránek podle adresy (#/gym/pumpa)
-│   └── db.js              ukládání do IndexedDB
+│   ├── db.js              ukládání do IndexedDB
+│   ├── utils.js           drobné sdílené pomocné funkce
+│   ├── quick-entry.js     rychlý zápis "bench press 80kg 8/8/6" → série
+│   ├── spoken-entry.js    mluvený zápis "bench press 3 série po 8, 60 kilo"
+│   ├── gym-data.js        data gymu: tréninky, objem, "minule"
+│   └── views/
+│       ├── gym-log.js     Gym → Tabulka: přepínač Tréninky | Tabulka
+│       ├── workouts.js    seznam a detail tréninků (jako Strava)
+│       ├── plans.js       ⚙ plány tréninků (názvy + cviky)
+│       └── table.js       všechny série jako tabulka v Excelu
 ├── icons/                 ikony appky (PNG)
 └── tools/
     ├── serve.ps1          mini server pro testování na PC
