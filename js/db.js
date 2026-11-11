@@ -1,10 +1,11 @@
 // Lokální databáze v zařízení (IndexedDB). Žádný server, nic neodchází z telefonu.
-// Dva "šuplíky" (store):
+// Tři "šuplíky" (store):
 //   entries – jednotlivé záznamy, liší se klíčem sekce, např. section = "gym/pumpa"
 //   tables  – celé tabulky (sloupce + řádky) jako jeden záznam, např. id = "gym/tabulka"
+//   photos  – fotky (Pumpa, check-iny): { id, kind, date, checkinId?, pose?, blob, thumb, note }
 
 const DB_NAME = 'narcis';
-const DB_VERSION = 2; // zvyš, když budeš měnit strukturu (nový store, index…)
+const DB_VERSION = 3; // zvyš, když budeš měnit strukturu (nový store, index…)
 
 let dbPromise;
 
@@ -23,6 +24,11 @@ function openDb() {
       }
       if (!db.objectStoreNames.contains('tables')) {
         db.createObjectStore('tables', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('photos')) {
+        const store = db.createObjectStore('photos', { keyPath: 'id', autoIncrement: true });
+        store.createIndex('kind', 'kind');           // 'pump' | 'checkin'
+        store.createIndex('checkin', 'checkinId');   // fotky jednoho check-inu
       }
     };
 
@@ -81,6 +87,47 @@ export function getTable(id) {
 export function saveTable(table) {
   return run('tables', 'readwrite', (store) => store.put({ ...table, updatedAt: Date.now() }));
 }
+
+// ---------- photos ----------
+
+export function addPhoto(photo) {
+  return run('photos', 'readwrite', (store) => store.add({ ...photo, createdAt: Date.now() }));
+}
+
+// Všechny fotky jednoho druhu ('pump' | 'checkin')
+export function listPhotos(kind) {
+  return run('photos', 'readonly', (store) => store.index('kind').getAll(kind));
+}
+
+export function updatePhoto(photo) {
+  return run('photos', 'readwrite', (store) => store.put(photo));
+}
+
+export function deletePhoto(id) {
+  return run('photos', 'readwrite', (store) => store.delete(id));
+}
+
+// Smaže všechny fotky jednoho check-inu (projde je "kurzorem" jednu po druhé)
+export function deleteCheckinPhotos(checkinId) {
+  return openDb().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction('photos', 'readwrite');
+        const req = tx.objectStore('photos').index('checkin').openCursor(checkinId);
+        req.onsuccess = () => {
+          const cursor = req.result;
+          if (cursor) {
+            cursor.delete();
+            cursor.continue();
+          }
+        };
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      })
+  );
+}
+
+// ---------- ukládání tabulek ----------
 
 // Odložené uložení: při psaní neukládáme po každém písmenu, ale chvilku po posledním.
 // Promise se splní, až se opravdu uloží (přepsaná, starší čekání se nesplní nikdy).

@@ -5,11 +5,16 @@
 import { categories } from './routes.js';
 import { addEntry, listEntries, deleteEntry, flushSaves, requestPersistence } from './db.js';
 import { escapeHtml } from './utils.js';
+import { releasePhotoUrls } from './images.js';
 import { renderGymLog } from './views/gym-log.js';
+import { renderPump } from './views/pump.js';
+import { renderProgress } from './views/progress.js';
 
 // Podzáložky s vlastním obsahem. Ostatní zatím ukazují zástupnou stránku.
 const views = {
   'gym/tabulka': renderGymLog,
+  'gym/pumpa': renderPump,
+  'gym/progres': renderProgress,
 };
 
 const $tabbar = document.getElementById('tabbar');
@@ -91,6 +96,7 @@ async function renderView(category, section, rest) {
 function render() {
   const { category, section, rest } = parseHash();
   flushSaves(); // rozepsané změny ulož dřív, než se načte další stránka
+  releasePhotoUrls(); // fotky z minulé stránky už nejsou potřeba
   renderNav(category, section);
   renderView(category, section, rest);
 }

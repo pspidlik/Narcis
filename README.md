@@ -19,11 +19,17 @@ narcis/
 │   ├── utils.js           drobné sdílené pomocné funkce
 │   ├── quick-entry.js     rychlý zápis "bench press 80kg 8/8/6" → série
 │   ├── spoken-entry.js    mluvený zápis "bench press 3 série po 8, 60 kilo"
-│   ├── gym-data.js        data gymu: tréninky, objem, "minule"
+│   ├── gym-data.js        data gymu: tréninky, objem, "minule", partie, cíle
+│   ├── images.js          zmenšení fotek a odkazy pro zobrazení
+│   ├── camera.js          fotoaparát s overlayem minulé fotky a samospouští
+│   ├── toast.js           krátké oznámení dole
 │   └── views/
-│       ├── gym-log.js     Gym → Tabulka: přepínač Tréninky | Tabulka
+│       ├── gym-log.js     Gym → Tabulka: přepínač Tréninky | Přehled | Tabulka
 │       ├── workouts.js    seznam a detail tréninků (jako Strava)
-│       ├── plans.js       ⚙ plány tréninků (názvy + cviky)
+│       ├── overview.js    Přehled: Co dnes?, pauzy partií, týden po partiích, cíle
+│       ├── plans.js       ⚙ plány tréninků a cviky (partie, rozsah opakování)
+│       ├── pump.js        Gym → Pumpa: fotky kdykoliv
+│       ├── progress.js    Gym → Progres: check-iny, porovnání, časová osa
 │       └── table.js       všechny série jako tabulka v Excelu
 ├── icons/                 ikony appky (PNG)
 └── tools/

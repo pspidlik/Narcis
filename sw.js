@@ -1,6 +1,6 @@
 // Service worker: uloží soubory appky do telefonu, takže běží i bez internetu.
 // DŮLEŽITÉ: po každé změně souborů zvyš verzi, jinak telefon drží starou verzi.
-const CACHE = 'narcis-v7';
+const CACHE = 'narcis-v8';
 
 const FILES = [
   './',
@@ -18,6 +18,12 @@ const FILES = [
   './js/views/gym-log.js',
   './js/views/workouts.js',
   './js/views/plans.js',
+  './js/views/overview.js',
+  './js/views/pump.js',
+  './js/views/progress.js',
+  './js/images.js',
+  './js/camera.js',
+  './js/toast.js',
   './js/views/table.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
