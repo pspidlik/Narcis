@@ -10,15 +10,17 @@ def mapsvg(p,w,h):
     for k,v in dict(p['map'],accent=p['acc']).items(): t=t.replace('{'+k+'}',v)
     t=re.sub(r'<g fill="[^"]*" font-family="Schibsted Grotesk, Arial, sans-serif" font-size="12".*?</g>\n?','',t,flags=re.S)
     t=re.sub(r'(<text[^>]*?)font-size="13"([^>]*>ZÁMEK</text>)',r'\1font-size="22"\2',t)
+    t=re.sub(r'<path d="M380 372[^>]*></path>\s*','',t)
+    t=re.sub(r'<circle cx="(398|446|488)"[^>]*></circle>\s*','',t)
     return t
 def column(p,W,top,s=1.0,g=1.0):
     z=lambda v:round(v*s)
     m=lambda v:round(v*s*g)
     return f'''<div style="position:absolute;left:0;top:{top}px;width:{W}px;display:flex;flex-direction:column;align-items:center;text-align:center;color:{p['ink']}">
-  <span style="font-size:{z(36)}px;font-weight:700;letter-spacing:-.01em">Nově ve Vlassalonu, Prostějov</span>
+  <span style="font-size:{z(30)}px;font-weight:600">Nová barberka ve Vlassalonu, Prostějov</span>
   <span style="margin-top:{m(22)}px;font-size:{z(135)}px;font-weight:900;line-height:.94;letter-spacing:-.04em;text-transform:uppercase">Přijď<br>nakrátko.</span>
   <span style="margin-top:{m(40)}px;font-size:{z(62)}px;font-weight:800;letter-spacing:-.02em;line-height:1">Kateřina Šťastná</span>
-  <span style="margin-top:{z(10)}px;font-size:{z(40)}px;font-weight:700">Pánské střihy od 1. 12.</span>
+  <span style="margin-top:{z(10)}px;font-size:{z(40)}px;font-weight:700">Otevírám 1. 12.</span>
   <span style="margin-top:{m(44)}px;font-size:{z(104)}px;font-weight:900;line-height:1;letter-spacing:-.035em;color:{p['acc']}">od 179 Kč</span>
   <span style="margin-top:{z(6)}px;font-size:{z(26)}px;font-weight:500;color:{p['mut']}">celý ceník v salonu</span>
   <span style="margin-top:{m(44)}px;font-size:{z(46)}px;font-weight:800;letter-spacing:-.01em">777 787 147</span>
